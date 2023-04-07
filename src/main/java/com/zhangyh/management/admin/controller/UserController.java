@@ -1,6 +1,7 @@
 package com.zhangyh.management.admin.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
 import com.zhangyh.management.admin.annotation.AuthCheck;
@@ -9,6 +10,7 @@ import com.zhangyh.management.admin.annotation.PermissionEnum;
 import com.zhangyh.management.admin.model.dto.UserLoginDto;
 import com.zhangyh.management.admin.model.dto.UserQueryDto;
 import com.zhangyh.management.admin.model.dto.UserRegistryDto;
+import com.zhangyh.management.admin.model.dto.UserUpdateDto;
 import com.zhangyh.management.admin.model.po.UserAccount;
 import com.zhangyh.management.admin.model.po.UserInfo;
 import com.zhangyh.management.admin.model.vo.UserAccountVo;
@@ -18,13 +20,14 @@ import com.zhangyh.management.admin.service.UserAccountService;
 import com.zhangyh.management.admin.service.UserInfoService;
 import com.zhangyh.management.admin.service.impl.ImgVerifyCodeServiceImpl;
 import com.zhangyh.management.common.constants.ErrorCode;
-import com.zhangyh.management.common.constants.GlobalConstants;
 import com.zhangyh.management.common.exception.BusinessException;
 import com.zhangyh.management.common.http.response.ApiResponse;
 import com.zhangyh.management.common.http.response.ResponseHelper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -79,7 +82,7 @@ public class UserController {
     public ApiResponse<UserAccountVo> baseLogin(@Validated @RequestBody UserLoginDto user, HttpServletRequest request){
         String verifyCode = user.getVerifyCode();
         String randomKey = user.getRandomKey();
-//        imgVerifyCodeService.checkCaptcha(randomKey,verifyCode);
+        imgVerifyCodeService.checkCaptcha(randomKey,verifyCode);
         UserAccountVo userAccountVo = userService.baseLogin(user,request);
         return ResponseHelper.success(userAccountVo);
     }
@@ -128,6 +131,24 @@ public class UserController {
         return ResponseHelper.success(userAccountDeleteFlag);
     }
 
+    @ApiOperation(value = "用户信息更新",httpMethod = "POST")
+    @PostMapping("/updateInfo")
+    public ApiResponse<Boolean> updateUserInfo(@RequestBody UserUpdateDto updateDto){
+        UpdateWrapper<UserAccount> userAccountUpdateWrapper = new UpdateWrapper<>();
+        UpdateWrapper<UserInfo> userInfoUpdateWrapper = new UpdateWrapper<>();
+        userAccountUpdateWrapper.eq(UserAccount.ID,updateDto.getId());
+        UserAccount userAccount = new UserAccount();
+        BeanUtils.copyProperties(updateDto,userAccount);
+        boolean userAccountUpdateFlag = userService.update(userAccount, userAccountUpdateWrapper);
+        userInfoUpdateWrapper.eq(UserInfo.ACCOUNT_ID,updateDto.getId());
+        UserInfo userInfo = new UserInfo();
+        BeanUtils.copyProperties(updateDto,userInfo);
+        userInfo.setId(null);
+        boolean userInfoUpdateFlag = userInfoService.update(userInfo, userInfoUpdateWrapper);
+        return ResponseHelper.success(userAccountUpdateFlag&&userInfoUpdateFlag);
+    }
+
+    @Transactional
     @AuthCheck(value = PermissionEnum.USER)
     @ApiOperation(value = "查询用户账号",httpMethod = "GET")
     @GetMapping("/getUserAccount")

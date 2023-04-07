@@ -1,7 +1,6 @@
 package com.zhangyh.management.admin.model.dto;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -11,7 +10,6 @@ import java.util.Date;
  * @Date 2023/4/7 14:03
  * @desc
  */
-@EqualsAndHashCode
 @Data
 public class UserQueryDto extends PageRequest implements Serializable {
 
